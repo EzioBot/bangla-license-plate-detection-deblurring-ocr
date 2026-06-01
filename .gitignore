@@ -2,8 +2,10 @@
 dataset/
 dataset_plate/
 dataset_processed/
+clean_dataset_processed/
 data/
 *data/
+*dataset/ 
 dataset.zip 
 *.zip 
 
@@ -33,3 +35,4 @@ venv/
 
 # other files 
 yolov8.md
+*.txt
