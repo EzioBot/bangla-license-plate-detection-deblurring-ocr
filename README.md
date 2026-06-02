@@ -1,122 +1,37 @@
-# Bangla License Plate Detection and Deblurring
+# Bangladeshi Vehicle License Plate Detection, Deblurring, and OCR
 
-This project builds a staged Bangla license plate pipeline. The first notebook
-trains a YOLOv8 object detector to locate full license plates. The second
-notebook trains a DeblurGAN model to restore YOLOv8-cropped blurry plate
-images before the later OCR stage.
+This project implements a staged Bangladeshi license plate recognition pipeline using the Kaggle **Bangladeshi Vehicle License Plate** dataset. The workflow detects license plates with YOLOv8, restores degraded plate crops with DeblurGAN, and reads Bengali plate text with a YOLOv8 token-based OCR stage.
 
-The YOLOv8 notebook creates a normalized one-box-per-plate dataset before
-creating augmented training data and training the detector. It also supports
-source annotations that contain multiple character boxes by merging them into
-one plate box.
+Dataset source: [Bangladeshi Vehicle License Plate on Kaggle](https://www.kaggle.com/datasets/sifatkhan69/bangladeshi-vehicle-license-plate)
 
-## Workflow
+## Project Workflow
 
-The YOLOv8 notebook performs these steps:
+The final project is organized into four main stages:
 
-1. Checks the available CPU or NVIDIA GPU device.
-2. Verifies the downloaded dataset structure.
-3. Converts or normalizes annotations into one plate-level box per image.
-4. Creates clean and degraded images using blur, distortion, and lighting
-   augmentation.
-5. Trains a YOLOv8 model to detect one class: `license_plate`.
-6. Validates and tests the best trained model.
-7. Displays metrics, plots, and final prediction examples.
+1. **Dataset preprocessing**
+   - Reads the downloaded Kaggle dataset in YOLO-style `train`, `valid`, and `test` folders.
+   - Converts character/token annotations into one plate-level bounding box for plate detection.
+   - Keeps Bengali OCR token labels for the OCR stage.
 
-The DeblurGAN notebook performs these steps:
+2. **YOLOv8 license plate detection**
+   - Trains a one-class YOLOv8 detector for `license_plate`.
+   - Uses motion blur, distortion, lighting, and clean image variants for robustness.
+   - Saves the best plate detector at `runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/weights/best.pt`.
 
-1. Loads the trained YOLOv8 detector.
-2. Creates YOLOv8-cropped blurry license plate inputs.
-3. Pairs each blurry crop with a matching clean crop target.
-4. Trains a DeblurGAN model with an FPN Inception-ResNet-V2 generator and a
-   relativistic double-scale PatchGAN discriminator.
-5. Uses pixel, perceptual, and RaGAN-LS adversarial losses.
-6. Saves checkpoints, deblurred outputs, and evaluation figures.
+3. **DeblurGAN restoration**
+   - Uses YOLOv8-cropped plate images as paired inputs for DeblurGAN training.
+   - Trains an FPN Inception-ResNet-V2 style generator with a double-scale PatchGAN discriminator.
+   - Produces restored plate crops and PSNR/SSIM/MAE evaluation figures.
 
-## Project Files
+4. **Bengali OCR**
+   - Uses a YOLOv8 token detector for Bengali plate words, letters, and digits.
+   - Reconstructs the final Bengali plate string from detected token order.
+   - Evaluates exact plate match accuracy, CER, and WER.
+   - Supports two OCR input branches: DeblurGAN-restored crops and direct YOLOv8 detector crops.
 
-| File | Description |
-| --- | --- |
-| `yolov8_workflow.ipynb` | YOLOv8 preprocessing, training, and evaluation notebook. |
-| `deblurgan_workflow.ipynb` | DeblurGAN crop handoff, training, inference, and restoration evaluation notebook. |
-| `yolov8s.pt` | Pretrained YOLOv8 weights used to begin training. |
-| `commands .docx` | Original Windows environment setup command reference. |
+## Dataset
 
-## Requirements
-
-- Windows PowerShell or the VS Code PowerShell terminal
-- Python available from the `python` command
-- An NVIDIA GPU is recommended for training, but the notebook can fall back
-  to CPU
-
-## Step 1: Open the Project Folder
-
-Open this folder in VS Code, and then open **Terminal > New Terminal**. For
-the current local folder, PowerShell can also be opened directly with:
-
-```powershell
-cd "D:\thesis model training"
-```
-
-## Step 2: Create a Python Virtual Environment
-
-
-
-```powershell
-python -m venv --clear .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-```
-
-After activation, the terminal prompt should begin with `(.venv)`.
-
-If PowerShell prevents virtual-environment activation, run the following
-command once and activate the environment again:
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\.venv\Scripts\Activate.ps1
-```
-
-## Step 3: Install Required Packages
-
-For an NVIDIA GPU environment using the CUDA 12.8 PyTorch build specified in
-the setup document, run:
-
-```powershell
-python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-python -m pip install jupyterlab numpy pandas matplotlib scikit-learn
-python -m pip install ultralytics albumentations opencv-python
-```
-
-For CPU-only training, use the CPU PyTorch packages instead of the CUDA line:
-
-```powershell
-python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-python -m pip install jupyterlab numpy pandas matplotlib scikit-learn
-python -m pip install ultralytics albumentations opencv-python
-```
-
-The DeblurGAN notebook can run with its notebook-local Inception-ResNet-V2
-style fallback. If you want to use the full `timm` Inception-ResNet-V2
-backbone, install `timm` after the base packages:
-
-```powershell
-python -m pip install timm
-```
-
-## Step 4: Download and Arrange the Dataset
-
-The primary source dataset is hosted on Roboflow Universe under the CC BY 4.0
-license and is listed there as object detection data with the
-`license-plate-number` class:
-
-- [Bangla License Plate Detection - Roboflow Universe](https://universe.roboflow.com/bangla-car-license-plate-detection/bangla-license-plate-detection-p3xyb)
-- [Bangla License Plate Detection v1 - versioned dataset export](https://universe.roboflow.com/sagar-sarker-4fqam/bangla-license-plate-detection-p3xyb-unrnf/dataset/1)
-
-Download the dataset in **YOLOv8** format. Extract its contents into a
-`dataset/` folder in the project root. Before running the notebook, the
-required structure is:
+The project is based on the Kaggle dataset linked above. After downloading and extracting the dataset, the expected local structure is:
 
 ```text
 dataset/
@@ -132,77 +47,146 @@ dataset/
 `-- data.yaml
 ```
 
-The notebook writes a plate-level dataset using the class name
-`license_plate`. If source annotations contain multiple character boxes, it
-merges them into one full-plate bounding box automatically. If an annotation
-already contains one plate box, that plate-level structure is preserved.
+Current local dataset split sizes:
 
-## Step 5: Run the Notebooks
+| Split | Raw images | Raw labels |
+| --- | ---: | ---: |
+| Train | 3,544 | 3,544 |
+| Valid | 383 | 383 |
+| Test | 195 | 195 |
 
-With the virtual environment active, start JupyterLab:
+The cleaned plate-detection dataset generated by the preprocessing notebook is saved in `clean_dataset_processed/`:
+
+| Split | Processed images | Processed labels |
+| --- | ---: | ---: |
+| Train | 1,543 | 1,543 |
+| Valid | 192 | 192 |
+| Test | 194 | 194 |
+
+For OCR, the notebook keeps valid Bengali token-labeled samples from the raw annotations:
+
+| Split | OCR-labeled rows |
+| --- | ---: |
+| Train | 1,058 |
+| Valid | 89 |
+| Test | 52 |
+
+## Project Files
+
+| File | Description |
+| --- | --- |
+| `clean_dataset_yolov8_preprocessing.ipynb` | Builds the clean plate-level YOLOv8 dataset from the Kaggle annotations. |
+| `yolov8_workflow.ipynb` | Trains and evaluates the YOLOv8 license plate detector. |
+| `deblurgan_workflow.ipynb` | Trains DeblurGAN and evaluates restored plate crops. |
+| `ocr_workflow ( custom structured PyTorch OCR model).ipynb` | Runs Bengali OCR using YOLOv8 token detection on DeblurGAN or YOLOv8 detector crops. |
+| `yolov8s.pt` | Pretrained YOLOv8 weights used to initialize training. |
+| `LICENSE` | Project source-code license. |
+
+## Requirements
+
+- Windows PowerShell or VS Code terminal
+- Python available from the `python` command
+- JupyterLab
+- An NVIDIA GPU is recommended, but the notebooks can fall back to CPU for smaller runs
+
+Install the main Python packages with GPU PyTorch:
 
 ```powershell
+python -m venv --clear .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+python -m pip install jupyterlab numpy pandas matplotlib scikit-learn opencv-python albumentations ultralytics easyocr pytesseract
+```
+
+For CPU-only PyTorch, replace the CUDA install line with:
+
+```powershell
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+```
+
+The DeblurGAN notebook can use its fallback generator setup. If you want the full external backbone support, install `timm`:
+
+```powershell
+python -m pip install timm
+```
+
+## How to Run
+
+Start JupyterLab from the project root:
+
+```powershell
+cd "your folder path"
 jupyter lab
 ```
 
-First open `yolov8_workflow.ipynb` and run the cells in order. The notebook
-uses these default training settings:
+Run the notebooks in this order:
 
-| Setting | Value |
+1. `clean_dataset_yolov8_preprocessing.ipynb`
+2. `yolov8_workflow.ipynb`
+3. `deblurgan_workflow.ipynb`
+4. `ocr_workflow.ipynb`
+
+
+## Saved Outputs
+
+| Output path | Contents |
 | --- | --- |
-| Model weights | `yolov8s.pt` |
-| Epochs | `30` |
-| Image size | `640` |
-| Batch size | `8` |
+| `clean_dataset_processed/` | Plate-level YOLOv8 training dataset. |
+| `runs/bangla_plate_yolov8/` | YOLOv8 plate detector training, validation, predictions, plots, and weights. |
+| `deblurgan_data/` | Paired blurry/clean plate crops for DeblurGAN. |
+| `runs/deblurgan_clean_dataset_irv2_fpn_psnr_v2/` | DeblurGAN checkpoints, training history, restored outputs, and restoration metrics. |
+| `runs/ocr_text_recognition_psnr_v2/` | OCR results using DeblurGAN-restored crops. |
+| `runs/ocr_yolov8_input_token_ocr/` | OCR results using direct YOLOv8 detector crops. |
 
-If GPU memory is limited, reduce `BATCH_SIZE` to `4` in the training cell.
+Important result files:
 
-After the YOLOv8 notebook finishes, open `deblurgan_workflow.ipynb` and run it
-for the deblurring stage. This notebook uses the trained YOLOv8 model as the
-crop source and produces deblurred license plate crops.
-
-## Step 6: Review Generated Outputs
-
-Running the YOLOv8 notebook creates these local folders:
-
-| Folder | Contents |
+| File | Purpose |
 | --- | --- |
-| `dataset_plate/` | Images and converted one-box license-plate labels. |
-| `dataset_processed/` | Clean and augmented plate-detection data used for training. |
-| `runs/bangla_plate_yolov8/` | Trained weights, validation plots, metrics, and predictions. |
+| `runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/results.csv` | YOLOv8 plate detector training and validation metrics. |
+| `runs/deblurgan_clean_dataset_irv2_fpn_psnr_v2/evaluation_figures/deblurgan_metric_summary.csv` | DeblurGAN PSNR, SSIM, and MAE comparison. |
+| `runs/ocr_text_recognition_psnr_v2/predictions/ocr_metric_summary.csv` | OCR accuracy for DeblurGAN-restored OCR input. |
+| `runs/ocr_yolov8_input_token_ocr/predictions/ocr_metric_summary.csv` | OCR accuracy for YOLOv8 detector-crop OCR input. |
+| `runs/ocr_yolov8_input_token_ocr/yolo_token_ocr/yolov8_token_detector/confusion_matrix.png` | YOLO token detector confusion matrix. |
+| `runs/ocr_yolov8_input_token_ocr/yolo_token_ocr/yolov8_token_detector/confusion_matrix_normalized.png` | Normalized YOLO token detector confusion matrix. |
 
-The best trained model is saved under:
+## Current Results
 
-```text
-runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/weights/best.pt
-```
+YOLOv8 plate detector final validation result:
 
-Running the DeblurGAN notebook creates these local folders:
+| Metric | Value |
+| --- | ---: |
+| Precision | 0.9759 |
+| Recall | 0.9794 |
+| mAP@50 | 0.9886 |
+| mAP@50:95 | 0.6350 |
 
-| Folder | Contents |
-| --- | --- |
-| `deblurgan_data/` | Generated YOLOv8 handoff images and paired blurry/clean plate crops for DeblurGAN training. |
-| `runs/deblurgan_irv2_fpn/` | DeblurGAN checkpoints, training history, inference outputs, and evaluation figures. |
+DeblurGAN restoration result:
 
-DeblurGAN evaluation figures are saved under:
+| Metric | Synthetic blurry input | DeblurGAN output |
+| --- | ---: | ---: |
+| PSNR (dB) | 27.9917 | 28.7647 |
+| SSIM | 0.8509 | 0.9041 |
+| MAE | 0.0372 | 0.0300 |
 
-```text
-runs/deblurgan_irv2_fpn/evaluation_figures/
-```
+OCR comparison:
+
+| OCR input | Samples | Exact plate accuracy | CER | WER |
+| --- | ---: | ---: | ---: | ---: |
+| DeblurGAN-restored crops | 52 | 92.31% | 0.76% | 2.24% |
+| YOLOv8 detector crops | 49 | 81.63% | 2.35% | 5.44% |
+
+The DeblurGAN-restored OCR branch currently gives the stronger Bengali plate recognition result.
+
+## Notes for Thesis Reporting
+
+- The detector and OCR are evaluated separately because plate localization and text recognition are different tasks.
+- YOLOv8 detects the plate region first; OCR then detects Bengali tokens inside the cropped plate.
+- Exact plate match accuracy is stricter than character-level error rate because one wrong character makes the whole plate incorrect.
+- The DeblurGAN branch improved OCR accuracy on this dataset compared with direct YOLOv8 detector crops.
 
 ## Version Control
 
-Downloaded datasets, dataset archives, converted/generated dataset folders,
-DeblurGAN generated data, and training run outputs are excluded from Git. The
-`deblurgan_data/` folder is intentionally ignored through `.gitignore` because
-it can take a large amount of space. Any user can recreate it by running
-`deblurgan_workflow.ipynb`, which rebuilds the YOLOv8 crop handoff and paired
-DeblurGAN training data locally.
+Downloaded datasets, generated datasets, checkpoints, model outputs, predictions, and training runs are intentionally ignored by Git because they are large and can be recreated by running the notebooks.
 
-The pretrained weight files used by this repository are included so the
-YOLOv8 notebook can start from the documented model weights.
-
-## License
-
-The project source is provided under the [MIT License](LICENSE). Refer to the
-Roboflow dataset page for the dataset license and attribution requirements.
+The project source code is provided under the [MIT License](LICENSE). Refer to the Kaggle dataset page for dataset usage terms and citation/attribution requirements.
