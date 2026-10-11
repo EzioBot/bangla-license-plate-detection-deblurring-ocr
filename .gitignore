@@ -10,8 +10,24 @@ dataset.zip
 *.zip 
 
 
-# Ignore model training outputs
+# Ignore model training outputs except the selected training and evaluation charts
 runs/
+!runs/
+runs/*
+!runs/bangla_plate_yolov8/
+runs/bangla_plate_yolov8/*
+!runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/
+runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/*
+!runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/BoxP_curve.png
+!runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/BoxR_curve.png
+!runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/BoxF1_curve.png
+!runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/BoxPR_curve.png
+!runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/results.png
+
+!runs/paper_pipeline_examples_final/
+runs/paper_pipeline_examples_final/*
+!runs/paper_pipeline_examples_final/deblurgan_v2_blur_level_metric_scores.png
+
 weights/
 # *.pt
 *.pth

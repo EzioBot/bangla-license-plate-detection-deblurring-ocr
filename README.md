@@ -154,11 +154,13 @@ The project includes actual training and evaluation artifacts generated during m
 
 ![YOLO F1 curve](runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/BoxF1_curve.png)
 
+![YOLO precision-recall curve](runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/BoxPR_curve.png)
+
 ![YOLO training summary](runs/bangla_plate_yolov8/plate_motion_blur_distortion_exp/results.png)
 
 ### DeblurGAN restoration metrics
 
-![DeblurGAN quality metrics](runs/deblurgan_clean_dataset_irv2_fpn_psnr_v2/deblurgan_v2_blur_level_metric_scores.png)
+![DeblurGAN quality metrics](runs/paper_pipeline_examples_final/deblurgan_v2_blur_level_metric_scores.png)
 
 ### OCR evaluation summary
 
